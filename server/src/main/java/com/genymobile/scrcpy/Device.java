@@ -2,6 +2,7 @@ package com.genymobile.scrcpy;
 
 import com.genymobile.scrcpy.wrappers.ClipboardManager;
 import com.genymobile.scrcpy.wrappers.ContentProvider;
+import com.genymobile.scrcpy.wrappers.DisplayControl;
 import com.genymobile.scrcpy.wrappers.InputManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.genymobile.scrcpy.wrappers.SurfaceControl;
@@ -293,12 +294,47 @@ public final class Device {
      * @param mode one of the {@code POWER_MODE_*} constants
      */
     public static boolean setScreenPowerMode(int mode) {
+        // Android 14+ support: methods moved to DisplayControl
+        boolean useDisplayControl = Build.VERSION.SDK_INT >= 34 && !SurfaceControl.hasGetPhysicalDisplayIdsMethod();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // For Android 10+, try to change power mode for all physical displays
+            long[] physicalDisplayIds = null;
+
+            if (useDisplayControl && DisplayControl.isAvailable()) {
+                physicalDisplayIds = DisplayControl.getPhysicalDisplayIds();
+            } else if (SurfaceControl.hasGetPhysicalDisplayIdsMethod()) {
+                physicalDisplayIds = SurfaceControl.getPhysicalDisplayIds();
+            }
+
+            if (physicalDisplayIds != null) {
+                boolean allOk = true;
+                for (long physicalDisplayId : physicalDisplayIds) {
+                    IBinder binder = useDisplayControl && DisplayControl.isAvailable()
+                            ? DisplayControl.getPhysicalDisplayToken(physicalDisplayId)
+                            : SurfaceControl.getPhysicalDisplayToken(physicalDisplayId);
+                    if (binder != null) {
+                        allOk &= SurfaceControl.setDisplayPowerMode(binder, mode);
+                    }
+                }
+                if (allOk) {
+                    Ln.i("Device screen turned " + (mode == POWER_MODE_OFF ? "off" : "on"));
+                    return true;
+                }
+            }
+        }
+
+        // Fallback for older Android versions or if the above method failed
         IBinder d = SurfaceControl.getBuiltInDisplay();
         if (d == null) {
             Ln.e("Could not get built-in display");
             return false;
         }
-        return SurfaceControl.setDisplayPowerMode(d, mode);
+        boolean ok = SurfaceControl.setDisplayPowerMode(d, mode);
+        if (ok) {
+            Ln.i("Device screen turned " + (mode == POWER_MODE_OFF ? "off" : "on"));
+        }
+        return ok;
     }
 
     public static boolean powerOffScreen(int displayId) {
