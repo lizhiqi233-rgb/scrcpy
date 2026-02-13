@@ -19,8 +19,8 @@ public final class DisplayControl {
         if (Build.VERSION.SDK_INT >= 34) {
             try {
                 Class<?> classLoaderFactoryClass = Class.forName("com.android.internal.os.ClassLoaderFactory");
-                Method createClassLoaderMethod = classLoaderFactoryClass.getDeclaredMethod("createClassLoader", String.class, String.class, String.class,
-                        ClassLoader.class, int.class, boolean.class, String.class);
+                Method createClassLoaderMethod = classLoaderFactoryClass.getDeclaredMethod("createClassLoader", String.class, String.class,
+                        String.class, ClassLoader.class, int.class, boolean.class, String.class);
 
                 String systemServerClasspath = Os.getenv("SYSTEMSERVERCLASSPATH");
                 ClassLoader classLoader = (ClassLoader) createClassLoaderMethod.invoke(null, systemServerClasspath, null, null,
