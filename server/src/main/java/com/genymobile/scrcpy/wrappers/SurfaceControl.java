@@ -29,6 +29,8 @@ public final class SurfaceControl {
 
     private static Method getBuiltInDisplayMethod;
     private static Method setDisplayPowerModeMethod;
+    private static Method getPhysicalDisplayTokenMethod;
+    private static Method getPhysicalDisplayIdsMethod;
 
     private SurfaceControl() {
         // only static methods
@@ -92,6 +94,15 @@ public final class SurfaceControl {
         return getBuiltInDisplayMethod;
     }
 
+    public static boolean hasGetBuildInDisplayMethod() {
+        try {
+            getGetBuiltInDisplayMethod();
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
     public static IBinder getBuiltInDisplay() {
 
         try {
@@ -103,6 +114,49 @@ public final class SurfaceControl {
 
             // call getInternalDisplayToken()
             return (IBinder) method.invoke(null);
+        } catch (ReflectiveOperationException e) {
+            Ln.e("Could not invoke method", e);
+            return null;
+        }
+    }
+
+    private static Method getGetPhysicalDisplayTokenMethod() throws NoSuchMethodException {
+        if (getPhysicalDisplayTokenMethod == null) {
+            getPhysicalDisplayTokenMethod = CLASS.getMethod("getPhysicalDisplayToken", long.class);
+        }
+        return getPhysicalDisplayTokenMethod;
+    }
+
+    public static IBinder getPhysicalDisplayToken(long physicalDisplayId) {
+        try {
+            Method method = getGetPhysicalDisplayTokenMethod();
+            return (IBinder) method.invoke(null, physicalDisplayId);
+        } catch (ReflectiveOperationException e) {
+            Ln.e("Could not invoke method", e);
+            return null;
+        }
+    }
+
+    private static Method getGetPhysicalDisplayIdsMethod() throws NoSuchMethodException {
+        if (getPhysicalDisplayIdsMethod == null) {
+            getPhysicalDisplayIdsMethod = CLASS.getMethod("getPhysicalDisplayIds");
+        }
+        return getPhysicalDisplayIdsMethod;
+    }
+
+    public static boolean hasGetPhysicalDisplayIdsMethod() {
+        try {
+            getGetPhysicalDisplayIdsMethod();
+            return true;
+        } catch (NoSuchMethodException e) {
+            return false;
+        }
+    }
+
+    public static long[] getPhysicalDisplayIds() {
+        try {
+            Method method = getGetPhysicalDisplayIdsMethod();
+            return (long[]) method.invoke(null);
         } catch (ReflectiveOperationException e) {
             Ln.e("Could not invoke method", e);
             return null;
