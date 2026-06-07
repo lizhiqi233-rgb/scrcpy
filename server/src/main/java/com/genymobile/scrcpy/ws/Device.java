@@ -8,7 +8,6 @@ import com.genymobile.scrcpy.util.Ln;
 import com.genymobile.scrcpy.wrappers.ClipboardManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 
-import android.content.IOnPrimaryClipChangedListener;
 import android.graphics.Rect;
 import android.view.InputEvent;
 import android.view.KeyEvent;
@@ -40,7 +39,7 @@ public final class Device {
     private final boolean supportsInputEvents;
 
     private final DisplayMonitor displayMonitor = new DisplayMonitor();
-    private IOnPrimaryClipChangedListener clipChangedListener;
+    private android.content.ClipboardManager.OnPrimaryClipChangedListener clipChangedListener;
 
     public Device(com.genymobile.scrcpy.Options options, VideoSettings videoSettings) {
         displayId = videoSettings.getDisplayId();
@@ -64,18 +63,15 @@ public final class Device {
 
         if (options.getControl()) {
             ClipboardManager clipboardManager = ServiceManager.getClipboardManager();
-            clipChangedListener = new IOnPrimaryClipChangedListener.Stub() {
-                @Override
-                public void dispatchPrimaryClipChanged() {
-                    if (isSettingClipboard.get()) {
-                        return;
-                    }
-                    synchronized (Device.this) {
-                        if (clipboardListener != null) {
-                            String text = com.genymobile.scrcpy.device.Device.getClipboardText();
-                            if (text != null) {
-                                clipboardListener.onClipboardTextChanged(text);
-                            }
+            clipChangedListener = () -> {
+                if (isSettingClipboard.get()) {
+                    return;
+                }
+                synchronized (Device.this) {
+                    if (clipboardListener != null) {
+                        String text = com.genymobile.scrcpy.device.Device.getClipboardText();
+                        if (text != null) {
+                            clipboardListener.onClipboardTextChanged(text);
                         }
                     }
                 }
@@ -172,13 +168,7 @@ public final class Device {
 
     public void release() {
         displayMonitor.stopAndRelease();
-        if (clipChangedListener != null) {
-            ClipboardManager clipboardManager = ServiceManager.getClipboardManager();
-            if (clipboardManager != null) {
-                clipboardManager.removePrimaryClipChangedListener(clipChangedListener);
-            }
-            clipChangedListener = null;
-        }
+        clipChangedListener = null;
         rotationListener = null;
         clipboardListener = null;
     }
