@@ -57,9 +57,6 @@ jobs:
             libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev \
             libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
 
-      - name: Install SDL3
-        run: app/deps/sdl.sh linux native shared
-
       - name: Build Linux ARM64 client
         run: release/build_linux.sh aarch64
 
