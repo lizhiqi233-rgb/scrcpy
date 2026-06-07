@@ -1,0 +1,88 @@
+name: Build Linux ARM64
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+env:
+  VERSION: ${{ github.ref_name }}
+
+jobs:
+  build-linux-aarch64:
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+    steps:
+      - name: Check architecture
+        run: |
+          arch=$(uname -m)
+          if [[ "$arch" != aarch64 ]]; then
+            echo "Unexpected architecture: $arch" >&2
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+
+      - name: Build scrcpy-server
+        env:
+          GRADLE: gradle
+        run: release/build_server.sh
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y meson ninja-build nasm ffmpeg libavcodec-dev \
+            libavdevice-dev libavformat-dev libavutil-dev libswresample-dev \
+            libusb-1.0-0 libusb-1.0-0-dev libv4l-dev \
+            libasound2-dev libpulse-dev \
+            libaudio-dev libfribidi-dev libjack-dev libsndio-dev libx11-dev libxext-dev \
+            libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev \
+            libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev \
+            libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev libthai-dev \
+            libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+
+      - name: Install SDL3
+        run: app/deps/sdl.sh linux native shared
+
+      - name: Build Linux ARM64 client
+        run: release/build_linux.sh aarch64
+
+      - name: Package release
+        run: release/package_client.sh linux-aarch64 tar.gz
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrcpy-linux-aarch64
+          path: release/output/scrcpy-linux-aarch64-*.tar.gz
+
+      - name: Upload scrcpy-server
+        uses: actions/upload-artifact@v4
+        with:
+          name: scrcpy-server
+          path: release/work/build-server/server/scrcpy-server
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/output/scrcpy-linux-aarch64-*.tar.gz
+            release/work/build-server/server/scrcpy-server
+          generate_release_notes: true
