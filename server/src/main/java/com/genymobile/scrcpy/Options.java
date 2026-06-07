@@ -359,8 +359,10 @@ public class Options {
                 options.listenOnAllInterfaces = Boolean.parseBoolean(args[4]);
             }
             options.video = true;
-            options.audio = false;
+            options.audio = true;
             options.control = true;
+            options.sendFrameMeta = true;
+            options.sendStreamMeta = true;
             return options;
         }
 

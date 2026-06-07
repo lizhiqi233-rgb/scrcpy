@@ -3,7 +3,7 @@ package com.genymobile.scrcpy.audio;
 import com.genymobile.scrcpy.AndroidVersions;
 import com.genymobile.scrcpy.AsyncProcessor;
 import com.genymobile.scrcpy.Options;
-import com.genymobile.scrcpy.device.Streamer;
+import com.genymobile.scrcpy.device.StreamOutput;
 import com.genymobile.scrcpy.model.Codec;
 import com.genymobile.scrcpy.model.CodecOption;
 import com.genymobile.scrcpy.model.ConfigurationException;
@@ -50,7 +50,7 @@ public final class AudioEncoder implements AsyncProcessor {
     private static final int CHANNELS = AudioConfig.CHANNELS;
 
     private final AudioCapture capture;
-    private final Streamer streamer;
+    private final StreamOutput streamer;
     private final int bitRate;
     private final List<CodecOption> codecOptions;
     private final String encoderName;
@@ -71,7 +71,7 @@ public final class AudioEncoder implements AsyncProcessor {
 
     private boolean ended;
 
-    public AudioEncoder(AudioCapture capture, Streamer streamer, Options options) {
+    public AudioEncoder(AudioCapture capture, StreamOutput streamer, Options options) {
         this.capture = capture;
         this.streamer = streamer;
         this.bitRate = options.getAudioBitRate();

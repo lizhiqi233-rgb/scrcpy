@@ -1,6 +1,14 @@
 package com.genymobile.scrcpy.ws;
 
 import com.genymobile.scrcpy.Options;
+import com.genymobile.scrcpy.AsyncProcessor;
+import com.genymobile.scrcpy.audio.AudioCapture;
+import com.genymobile.scrcpy.audio.AudioCodec;
+import com.genymobile.scrcpy.audio.AudioDirectCapture;
+import com.genymobile.scrcpy.audio.AudioEncoder;
+import com.genymobile.scrcpy.audio.AudioPlaybackCapture;
+import com.genymobile.scrcpy.audio.AudioRawRecorder;
+import com.genymobile.scrcpy.audio.AudioSource;
 import com.genymobile.scrcpy.util.Ln;
 
 import android.media.MediaCodecInfo;
@@ -22,6 +30,7 @@ public class WebSocketConnection extends Connection {
     private final WSServer wsServer;
     private final HashSet<WebSocket> sockets = new HashSet<>();
     private ScreenEncoder screenEncoder;
+    private AsyncProcessor audioProcessor;
 
     public WebSocketConnection(Options options, VideoSettings videoSettings, WSServer wsServer) {
         super(options, videoSettings);
@@ -43,12 +52,57 @@ public class WebSocketConnection extends Connection {
         } else if (!changed && streamInvalidateListener != null) {
             streamInvalidateListener.onStreamInvalidate();
         }
+        startAudioEncoder();
+    }
+
+    private void startAudioEncoder() {
+        if (!options.getAudio() || audioProcessor != null) {
+            return;
+        }
+
+        AudioCodec audioCodec = options.getAudioCodec();
+        AudioSource audioSource = options.getAudioSource();
+        AudioCapture audioCapture;
+        if (audioSource.isDirect()) {
+            audioCapture = new AudioDirectCapture(audioSource);
+        } else {
+            audioCapture = new AudioPlaybackCapture(options.getAudioDup());
+        }
+
+        WebSocketStreamer streamer = new WebSocketStreamer(this, audioCodec);
+        if (audioCodec == AudioCodec.RAW) {
+            audioProcessor = new AudioRawRecorder(audioCapture, streamer);
+        } else {
+            audioProcessor = new AudioEncoder(audioCapture, streamer, options);
+        }
+
+        AsyncProcessor processor = audioProcessor;
+        processor.start(fatalError -> {
+            if (audioProcessor == processor) {
+                audioProcessor = null;
+            }
+        });
+    }
+
+    private void stopAudioEncoder() {
+        if (audioProcessor == null) {
+            return;
+        }
+        AsyncProcessor processor = audioProcessor;
+        audioProcessor = null;
+        processor.stop();
+        try {
+            processor.join();
+        } catch (InterruptedException e) {
+            // ignore
+        }
     }
 
     public void leave(WebSocket webSocket) {
         sockets.remove(webSocket);
         if (sockets.isEmpty()) {
             Ln.d("Last client has left");
+            stopAudioEncoder();
             release();
         }
         wsServer.sendInitialInfoToAll();

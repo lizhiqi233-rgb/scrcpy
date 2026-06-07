@@ -2,7 +2,7 @@ package com.genymobile.scrcpy.audio;
 
 import com.genymobile.scrcpy.AndroidVersions;
 import com.genymobile.scrcpy.AsyncProcessor;
-import com.genymobile.scrcpy.device.Streamer;
+import com.genymobile.scrcpy.device.StreamOutput;
 import com.genymobile.scrcpy.util.IO;
 import com.genymobile.scrcpy.util.Ln;
 
@@ -15,11 +15,11 @@ import java.nio.ByteBuffer;
 public final class AudioRawRecorder implements AsyncProcessor {
 
     private final AudioCapture capture;
-    private final Streamer streamer;
+    private final StreamOutput streamer;
 
     private Thread thread;
 
-    public AudioRawRecorder(AudioCapture capture, Streamer streamer) {
+    public AudioRawRecorder(AudioCapture capture, StreamOutput streamer) {
         this.capture = capture;
         this.streamer = streamer;
     }

@@ -12,7 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
-public final class Streamer {
+public final class Streamer implements StreamOutput {
 
     private static final long PACKET_FLAG_SESSION = 1L << 63;
     private static final long PACKET_FLAG_CONFIG = 1L << 62;
